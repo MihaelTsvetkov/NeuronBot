@@ -1,10 +1,12 @@
+import threading
+
 import openai.error
 import telebot
 from telebot import types
 from chatgpt import ChatGpt
 
 
-token =
+token = "2145790976:AAHqdM_Ift6No0jaLyae44nt5Q9oR5MuUw8"
 
 chatgpt3_but = "ChatGpt3"
 
@@ -14,10 +16,13 @@ class FSM:
         self.state = None
         self.bot = telebot.TeleBot(token, threaded=True)
         self.response = None
+        self.lock = threading.RLock()
+        self.answer = False
 
         @self.bot.message_handler(commands=['start'])
         def launch(message):
-            self.start_command(message)
+            with self.lock:
+                self.start_command(message)
 
         @self.bot.message_handler(content_types=['text'])
         def call_process_message(message):
@@ -64,19 +69,20 @@ class FSM:
     def gpt_request(self, message):
         user_message = message.text.strip()
         print(f"Запрос к chatgpt от пользователя: {message.from_user.username}, запрос: {user_message}")
+        self.state = None
         self.bot.send_message(message.chat.id, 'Запрос отправлен, ожидайте')
         try:
             gpt = ChatGpt(user_message)
             self.response = gpt.chat_gpt_request()
         except openai.error.RateLimitError:
             self.bot.send_message(message.chat.id, 'Похоже вы превысили лимит по запросам к нейросети '
-                                                   'в минуту ! Но ничего страшного,'
+                                                   'в минуту! Но ничего страшного,'
                                                    ' совсем скоро вы сможете заплатить за совршенную gpt-4, '
-                                                   'которая не имеет лимитов ! (Все вырученные средства пойдут '
-                                                   'на покупку Audi A4 для разработчика !')
-            self.start(message)
+                                                   'которая не имеет лимитов! (Все вырученные средства пойдут '
+                                                   'на покупку Audi A4 для разработчика !)')
         self.bot.send_message(message.chat.id, self.response)
         self.response = None
+        self.state = self.gpt_request
         self.bot.send_message(message.chat.id, "Введите запрос")
 
     def polling(self):
