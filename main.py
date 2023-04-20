@@ -6,7 +6,7 @@ from telebot import types
 from chatgpt import ChatGpt
 
 
-token = "2145790976:AAHqdM_Ift6No0jaLyae44nt5Q9oR5MuUw8"
+token = ""
 
 chatgpt3_but = "ChatGpt3"
 
