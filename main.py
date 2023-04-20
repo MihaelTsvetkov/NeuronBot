@@ -64,7 +64,7 @@ class FSM:
 
         if user_message == "ChatGpt3":
             self.state = self.gpt_request
-            self.bot.send_message(message.chat.id, "Введите запрос")
+            self.bot.send_message(message.chat.id, "Введите запрос", reply_markup=types.ReplyKeyboardRemove())
 
     def gpt_request(self, message):
         user_message = message.text.strip()
@@ -83,7 +83,7 @@ class FSM:
         self.bot.send_message(message.chat.id, self.response)
         self.response = None
         self.state = self.gpt_request
-        self.bot.send_message(message.chat.id, "Введите запрос")
+        self.bot.send_message(message.chat.id, "Введите запрос", )
 
     def polling(self):
         self.bot.infinity_polling()
