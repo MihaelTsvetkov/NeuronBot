@@ -1,13 +1,13 @@
+import os
 import threading
-
 import openai.error
 import telebot
+from pydub import AudioSegment
 from telebot import types
 from chatgpt import ChatGpt
 
 
 token = ""
-
 chatgpt3_but = "ChatGpt3"
 
 
@@ -24,7 +24,7 @@ class FSM:
             with self.lock:
                 self.start_command(message)
 
-        @self.bot.message_handler(content_types=['text'])
+        @self.bot.message_handler(content_types=['text', 'voice'])
         def call_process_message(message):
             self.process_message(message)
 
@@ -67,13 +67,18 @@ class FSM:
             self.bot.send_message(message.chat.id, "Введите запрос", reply_markup=types.ReplyKeyboardRemove())
 
     def gpt_request(self, message):
-        user_message = message.text.strip()
+        gpt = ChatGpt()
+        if not bool(message.text):
+            user_message = str(gpt.transcribe(self.prepare_audio(message)))
+            os.remove("Your path to audio file")
+            os.remove("Your path to audio file")
+        else:
+            user_message = message.text.strip()
         print(f"Запрос к chatgpt от пользователя: {message.from_user.username}, запрос: {user_message}")
         self.state = None
         self.bot.send_message(message.chat.id, 'Запрос отправлен, ожидайте')
         try:
-            gpt = ChatGpt(user_message)
-            self.response = gpt.chat_gpt_request()
+            self.response = gpt.chat_gpt_request(str(user_message))
         except openai.error.RateLimitError:
             self.bot.send_message(message.chat.id, 'Похоже вы превысили лимит по запросам к нейросети '
                                                    'в минуту! Но ничего страшного,'
@@ -84,6 +89,15 @@ class FSM:
         self.response = None
         self.state = self.gpt_request
         self.bot.send_message(message.chat.id, "Введите запрос", )
+
+    def prepare_audio(self, message):
+        file_info = self.bot.get_file(message.voice.file_id)
+        downloaded_file = self.bot.download_file(file_info.file_path)
+
+        with open('new_file.ogg', 'wb') as new_file:
+            new_file.write(downloaded_file)
+        sound = AudioSegment.from_file("Your path to audio file")
+        return sound.export("Your path to audio file")
 
     def polling(self):
         self.bot.infinity_polling()
